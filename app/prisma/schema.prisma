@@ -1,0 +1,287 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = "postgresql://anas:mypassword@localhost:5432/mydatabase"
+}
+
+
+// User roles enum
+enum Role {
+  SUPER_ADMIN
+  COOPERATIVE
+  CUSTOMER
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+// User model with authentication
+model User {
+  id       String  @id @default(cuid())
+  email    String  @unique
+  password String // Hashed password
+  role     Role    @default(CUSTOMER)
+  isActive Boolean @default(false)
+
+  // Profile information
+  firstName String
+  lastName  String
+  phone     String?
+  avatar    String?
+
+  // Preferences
+  preferredLanguage String @default("ar") // ar, fr, en
+
+  // Relations
+  cooperative Cooperative? // Only if role is COOPERATIVE
+  orders      Order[]
+  reviews     Review[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+// Cooperative model
+model Cooperative {
+  id     String @id @default(cuid())
+  userId String @unique
+
+  // Multi-language fields (Arabic is primary)
+  name_ar String
+  name_fr String?
+  name_en String?
+
+  description_ar String
+  description_fr String?
+  description_en String?
+
+  // Location and contact
+  region  String
+  city    String
+  address String?
+  phone   String
+  email   String?
+  website String?
+
+  // Business information
+  establishedYear Int
+  memberCount     Int
+  licenseNumber   String?
+
+  // Status and verification
+  isVerified Boolean @default(false)
+  isActive   Boolean @default(true)
+
+  // Media
+  logo       String?
+  coverImage String?
+
+  // Specialties as JSON array
+  specialties    Json // ["Argan Oil", "Cosmetics", "Traditional Crafts"]
+  certifications Json // ["Organic", "Fair Trade", "Ecocert"]
+
+  // Relations
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  products Product[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([region, city])
+  @@map("cooperatives")
+}
+
+// Category model
+model Category {
+  id String @id @default(cuid())
+
+  // Multi-language fields
+  name_ar String
+  name_fr String?
+  name_en String?
+
+  description_ar String?
+  description_fr String?
+  description_en String?
+
+  // Category details
+  slug  String  @unique
+  icon  String? // Emoji or icon identifier
+  image String?
+  color String? // Hex color for UI
+
+  // Hierarchy
+  parentId String?
+  parent   Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryHierarchy")
+
+  // Status
+  isActive Boolean @default(false)
+  featured Boolean @default(false)
+
+  // Relations
+  products Product[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([slug])
+  @@index([parentId])
+  @@map("categories")
+}
+
+// Product model
+model Product {
+  id  String @id @default(cuid())
+  sku String @unique @default(cuid())
+
+  // Multi-language fields (Arabic is primary)
+  name_ar String
+  name_fr String?
+  name_en String?
+
+  description_ar String
+  description_fr String?
+  description_en String?
+
+  // Pricing and inventory
+  price         Float
+  originalPrice Float? // For discounts
+  currency      String @default("MAD")
+
+  stock    Int    @default(0)
+  minStock Int    @default(5)
+  unit     String @default("piece") // kg, piece, bottle, jar, etc.
+
+  // Product details
+  weight     Float?
+  dimensions Json? // {length, width, height}
+
+  // Status flags
+  isActive   Boolean @default(true)
+  featured   Boolean @default(false)
+  bestSeller Boolean @default(false)
+  newProduct Boolean @default(false)
+  organic    Boolean @default(false)
+
+  // SEO and organization
+  tags           Json // ["premium", "organic", "zagora", "sweet"]
+  specifications Json // {"Origin": "Zagora", "Variety": "Medjool"}
+
+  // Media
+  images Json // Array of image URLs
+
+  // Relations
+  cooperativeId String
+  categoryId    String
+
+  cooperative Cooperative @relation(fields: [cooperativeId], references: [id], onDelete: Cascade)
+  category    Category    @relation(fields: [categoryId], references: [id])
+
+  orderItems OrderItem[]
+  reviews    Review[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([cooperativeId])
+  @@index([categoryId])
+  @@index([featured, isActive])
+  @@index([bestSeller, isActive])
+  @@map("products")
+}
+
+// Order model
+model Order {
+  id          String @id @default(cuid())
+  orderNumber String @unique @default(cuid())
+
+  userId String
+  status OrderStatus @default(PENDING)
+
+  // Totals
+  subtotal     Float
+  shippingCost Float @default(0)
+  tax          Float @default(0)
+  total        Float
+
+  // Shipping information
+  shippingAddress Json // {firstName, lastName, address, city, region, phone}
+
+  // Payment information
+  paymentMethod String? // "cash_on_delivery", "bank_transfer", etc.
+  paymentStatus String? // "pending", "paid", "failed"
+
+  // Tracking
+  trackingNumber String?
+
+  // Relations
+  user  User        @relation(fields: [userId], references: [id])
+  items OrderItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("orders")
+}
+
+// Order items
+model OrderItem {
+  id String @id @default(cuid())
+
+  orderId   String
+  productId String
+
+  quantity Int
+  price    Float // Price at time of order
+  total    Float // quantity * price
+
+  // Relations
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@unique([orderId, productId])
+  @@map("order_items")
+}
+
+// Product reviews
+model Review {
+  id String @id @default(cuid())
+
+  userId    String
+  productId String
+
+  rating   Int // 1-5 stars
+  comment  String?
+  verified Boolean @default(false) // Verified purchase
+
+  // Relations
+  user    User    @relation(fields: [userId], references: [id]) //onDelete: SetNull
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, productId]) // One review per user per product
+  @@index([productId])
+  @@map("reviews")
+}

@@ -1,0 +1,25 @@
+# docker-compose.yml
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: my_postgres
+    restart: always
+    environment: 
+      POSTGRES_USER: anas
+      POSTGRES_PASSWORD: mypassword
+      POSTGRES_DB: mydatabase
+    ports:
+      - "5432:5432"
+    # volumes:
+    #   - termar:/var/lib/postgresql/data
+    # command: ["docker", "cp", "./sample_data.sql", "/"]
+
+# volumes:
+#   termar:
+    # driver: local
+    # driver_opts:
+    #   type: none
+    #   o: bind
+    #   device: /Users/aatbir/goinfre/Backend-Terroir/data
