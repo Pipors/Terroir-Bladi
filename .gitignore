@@ -4,7 +4,11 @@
 /node_modules
 /app/prisma/.env
 /launch_debug.sh
-/.pritterignore
+/.prettierignore
+/.prettierrc
+/app/pipeline.sh
+/package-lock.json
+/package.json
 # /backend/backend/node_modules
 /.pnp
 .pnp.*

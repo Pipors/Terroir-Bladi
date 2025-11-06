@@ -10,7 +10,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = "postgresql://anas:mypassword@localhost:5432/mydatabase"
+  url      = env("DATABASE_URL")
 }
 
 
