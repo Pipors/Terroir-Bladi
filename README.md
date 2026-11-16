@@ -68,7 +68,7 @@ reads it from `app/prisma/schema.prisma`.
 For the PostgreSQL service defined in `docker-compose.yml`, use:
 
 ```env
-DATABASE_URL="postgresql://anas:mypassword@localhost:5432/mydatabase?schema=public"
+DATABASE_URL="postgresql://host:mypassword@localhost:5432/mydatabase?schema=public"
 PORT=3200
 ```
 
